@@ -226,7 +226,7 @@ $('exp').addEventListener('click',async()=>{
  const m=html.match(/<title>(.*?)<\/title>/),name=((m&&m[1])||'page').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'page';
  try{const d=window.claude&&await claude.use('downloads');
   if(d){await d.save({filename:name+'.html',data:html});st.className='';st.textContent=`Exported ${name}.html`}
-  else{await navigator.clipboard.writeText(html);st.className='';st.textContent='Downloads aren’t available here, so the HTML was copied to your clipboard.'}}
+  else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download=name+'.html';document.body.appendChild(a);a.click();a.remove();st.className='';st.textContent=`Download started: ${name}.html`}}
  catch(e){if(e&&e.code=='declined')return;st.className='bad';st.textContent='The export didn’t go through. Try again, or copy the page from the preview.'}});
 /* ---------- Docs ---------- */
 const DOCS=[
