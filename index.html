@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wafl Editor</title>
+<style>
+:root{--bar:#22303f;--bg:#f6f5f1;--ed:#fffefb;--tx:#232830;--mut:#6a717c;--bd:#dcd9d1;--ac:#e0a030;--ok:#2f8f4e;--er:#b3261e;--erbg:#fbe9e7;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181e;--ed:#1a1f27;--tx:#dde2ea;--mut:#8f98a6;--bd:#2c333e;--ok:#5cc47e;--er:#ff8a80;--erbg:#3a1f1d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14181e;--ed:#1a1f27;--tx:#dde2ea;--mut:#8f98a6;--bd:#2c333e;--ok:#5cc47e;--er:#ff8a80;--erbg:#3a1f1d;color-scheme:dark}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;display:flex;flex-direction:column;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.bar{flex:none;display:flex;align-items:center;gap:.75rem;padding:.6rem 1rem;background:var(--bar);color:#eef1f5}
+.brand{font:700 1.35rem/1 Georgia,"Times New Roman",serif;color:var(--ac);letter-spacing:.02em}
+.tag{font-size:.85rem;color:#aab4c2}
+.sp{flex:1}
+button{font:inherit;font-weight:600;border-radius:.5rem;padding:.45rem .9rem;cursor:pointer;border:1px solid transparent}
+button:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.ghost{background:transparent;color:#dfe5ec;border-color:#4a5a6c}
+.go{background:var(--ac);color:#22303f}
+main{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr}
+.pane{min-width:0;min-height:0;display:flex;flex-direction:column}
+.ed{border-right:1px solid var(--bd);background:var(--ed)}
+textarea{flex:1;min-height:0;resize:none;border:0;padding:1rem 1.1rem;background:var(--ed);color:var(--tx);font:14px/1.65 ui-monospace,Menlo,Consolas,monospace;tab-size:2;white-space:pre;overflow:auto}
+#st{flex:none;padding:.5rem 1rem;border-top:1px solid var(--bd);font-size:.9rem;color:var(--ok);background:var(--ed)}
+#st.bad{background:var(--erbg);color:var(--er);cursor:pointer}
+details{flex:none;border-top:1px solid var(--bd);background:var(--ed);padding:.4rem 1rem;font-size:.85rem;color:var(--mut)}
+summary{cursor:pointer;font-weight:600}
+details p{margin:.4rem 0}
+iframe{flex:1;border:0;background:#fff;width:100%}
+#docs{position:fixed;inset:0;z-index:20;display:flex;justify-content:flex-end;background:rgba(10,14,20,.55)}
+#docs[hidden]{display:none}
+.dp{width:min(580px,100%);height:100%;display:flex;flex-direction:column;background:var(--ed);box-shadow:-8px 0 30px rgba(0,0,0,.25);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.dh{flex:none;display:flex;align-items:center;justify-content:space-between;padding:.8rem 1.2rem;border-bottom:1px solid var(--bd)}
+.dh h2{margin:0;font:700 1.2rem/1.2 Georgia,"Times New Roman",serif}
+.dh button,.add{background:transparent;color:var(--tx);border-color:var(--bd)}
+#db{flex:1;min-height:0;overflow:auto;padding:.4rem 1.2rem 2rem;line-height:1.6}
+#db section{padding:.6rem 0 1rem;border-bottom:1px solid var(--bd)}
+#db h3{margin:.6rem 0 .3rem;font-size:1.05rem}
+#db p{margin:.3rem 0 .6rem;max-width:62ch}
+#db pre{margin:.5rem 0;padding:.7rem .9rem;background:var(--bg);border:1px solid var(--bd);border-radius:.5rem;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;overflow-x:auto}
+.add{font-size:.85rem;padding:.3rem .7rem}
+@media (max-width:760px){.tag{display:none}main{grid-template-columns:1fr;grid-template-rows:1fr 1fr}.ed{border-right:0;border-bottom:1px solid var(--bd)}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <span class="brand">wafl</span><span class="tag">Write words, get a web page</span><span class="sp"></span>
+  <button class="ghost" id="dk">Docs</button>
+  <button class="ghost" id="ex">Load example</button>
+  <button class="go" id="exp">Export HTML</button>
+</header>
+<main>
+  <section class="pane ed">
+    <textarea id="src" spellcheck="false" autocapitalize="off" aria-label="Wafl code"></textarea>
+    <div id="st" role="status"></div>
+    <details><summary>Words you can use</summary>
+      <p><b>Text:</b> title, heading, subheading, text, quote, code, link, button, image, divider, space</p>
+      <p><b>Containers:</b> box, row, column, card, section, nav, header, footer, list (with “-” items), form</p>
+      <p><b>Settings:</b> page, theme (light, dark, warm, ocean, forest), set accent "#f90", let name = "Sam", description, email</p>
+      <p><b>Extras after text:</b> center, big, small, bold, muted, color red, bg gold, to "url", id x, width 300</p>
+    </details>
+  </section>
+  <section class="pane"><iframe id="pv" title="Live preview" sandbox="allow-scripts"></iframe></section>
+</main>
+<div id="docs" hidden>
+  <div class="dp" role="dialog" aria-modal="true" aria-label="Wafl docs">
+    <div class="dh"><h2>Learn Wafl</h2><button id="dc">Close</button></div>
+    <div id="db"></div>
+  </div>
+</div>
+<script>
+/* ---------- Wafl compiler (browser port) ---------- */
+class WErr extends Error{constructor(l,m){super(m);this.line=l}}
+const FLAGS=['center','right','left','big','small','bold','italic','muted'],VAL=['to','alt','id','class','name','type','color','bg','width','subject'];
+const E={title:['h1','','T'],heading:['h2','','T'],subheading:['h3','','T'],text:['p','','T'],quote:['blockquote','','T'],item:['li','','T'],link:['a','','T'],button:['a','button','T'],submit:['button','button','T'],box:['div','box','B'],row:['div','row','B'],column:['div','column','B'],card:['div','card','B'],section:['section','','B'],nav:['nav','','B'],header:['header','','B'],footer:['footer','','B'],list:['ul','','B'],numbered:['ol','','B'],form:['form','','B'],image:['img','','V'],divider:['hr','','V'],space:['div','space','V'],input:['input','','V'],textarea:['textarea','','V'],code:['pre','','C']};
+const CFG=['page','theme','set','let','description','email'];
+const TH={light:['#ffffff','#1f2430','#3b6cf6','#6b7280','#f5f6f8','#e3e6ea'],dark:['#12141a','#e8eaf0','#7aa2ff','#9aa1b2','#1b1e27','#2a2e3a'],warm:['#fff8ee','#3a2e24','#d9642b','#8a7563','#fdeedb','#f0dcc4'],ocean:['#f0f8fb','#0f2a38','#0a8fb5','#5b7a88','#e1f1f6','#c9e3ec'],forest:['#f3f7f1','#1f2e22','#2f8f4e','#667a6a','#e5eee2','#d0dfcc']};
+const KEYS={background:'--bg',text:'--text',accent:'--accent',muted:'--muted',card:'--card',border:'--border',font:'--font',width:'--width'};
+const CSS=`*{box-sizing:border-box}html{background:var(--bg)}body{margin:0 auto;max-width:var(--width);padding:2rem 1.25rem 4rem;color:var(--text);font-family:var(--font);line-height:1.65}
+h1,h2,h3{line-height:1.2;margin:1.6em 0 .5em}h1{font-size:2.4rem;margin-top:.6em}h2{font-size:1.7rem}h3{font-size:1.25rem}p{margin:.8em 0}a{color:var(--accent)}
+.button{display:inline-block;padding:.65em 1.3em;background:var(--accent);color:var(--bg)!important;border:0;border-radius:.6em;text-decoration:none;font:inherit;font-weight:600;cursor:pointer;margin:.5rem 0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:1rem;padding:1.25rem;margin:1rem 0}.card>:first-child{margin-top:0}.card>:last-child{margin-bottom:0}
+.row{display:flex;gap:1rem;flex-wrap:wrap;align-items:stretch}.row>*{flex:1 1 14rem;margin:0}.column{display:flex;flex-direction:column;gap:.5rem}
+nav{display:flex;gap:1.25rem;align-items:center;flex-wrap:wrap;padding:1rem 0;margin-bottom:1rem;border-bottom:1px solid var(--border)}nav a{text-decoration:none;font-weight:600}
+footer{margin-top:3rem;padding-top:1rem;border-top:1px solid var(--border);color:var(--muted)}img{max-width:100%;height:auto;border-radius:.6rem}hr{border:0;border-top:1px solid var(--border);margin:2rem 0}
+blockquote{margin:1.2rem 0;padding:.2rem 1.2rem;border-left:4px solid var(--accent);color:var(--muted)}
+pre{background:var(--card);border:1px solid var(--border);padding:1rem;border-radius:.6rem;overflow-x:auto}code{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--card);padding:.1em .35em;border-radius:.3em}pre code{padding:0;background:none}
+input,textarea{display:block;width:100%;max-width:28rem;padding:.65em .8em;margin:.6rem 0;font:inherit;color:var(--text);background:var(--card);border:1px solid var(--border);border-radius:.5rem}textarea{min-height:7rem}.space{height:2rem}
+.center{text-align:center}.right{text-align:right}.left{text-align:left}.big{font-size:1.4em}.small{font-size:.85em}.bold{font-weight:700}.italic{font-style:italic}.muted{color:var(--muted)}
+.button.center,img.center{display:block;width:fit-content;margin-left:auto;margin-right:auto}.button.right,img.right{display:block;width:fit-content;margin-left:auto}
+`;
+const MAILJS='<script>document.querySelectorAll("form[data-mailto]").forEach(function(f){f.addEventListener("submit",function(e){e.preventDefault();var b=[];[].forEach.call(f.elements,function(x){if(x.name&&x.value)b.push((x.placeholder||x.name)+": "+x.value)});location.href="mailto:"+f.dataset.mailto+"?subject="+encodeURIComponent(f.dataset.subject)+"&body="+encodeURIComponent(b.join("\\n\\n"))})})<\/script>';
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const inl=s=>s.replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2">$1</a>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\n/g,'<br>');
+const at=(k,v)=>` ${k}="${esc(v)}"`;
+function lev(a,b){let p=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){const c=[i];for(let j=1;j<=b.length;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]!=b[j-1]));p=c}return p[b.length]}
+function sug(w,opts){let best='',bd=3;for(const o of opts){const d=lev(w,o);if(d<bd||(d==bd&&best&&o[0]==w[0]&&best[0]!=w[0])){bd=d;best=o}}return best?` Did you mean '${best}'?`:''}
+function tok(s,l){const o=[];let i=0;while(i<s.length){const c=s[i];if(/\s/.test(c)){i++;continue}if(c=='/'&&s[i+1]=='/')break;
+ if(c=='"'){let v='',ok=0;i++;while(i<s.length){const d=s[i];if(d=='\\'&&i+1<s.length){const n=s[i+1];v+=n=='n'?'\n':(n=='"'||n=='\\')?n:d+n;i+=2;continue}if(d=='"'){ok=1;i++;break}v+=d;i++}
+  if(!ok)throw new WErr(l,'this text is missing its closing quote (")');o.push({t:v,q:1})}
+ else{let v='';while(i<s.length&&!/\s/.test(s[i])&&s[i]!='"')v+=s[i++];o.push({t:v,q:0})}}return o}
+function parse(src){const root={kids:[],ind:-1},st=[root];
+ src.split('\n').forEach((raw,k)=>{const l=k+1,m=raw.match(/^[ \t]*/)[0],ind=[...m].reduce((a,c)=>a+(c=='\t'?4:1),0),body=raw.slice(m.length),tk=tok(body,l);if(!tk.length)return;
+  if(tk[0].q)throw new WErr(l,`a line should start with a word like 'text' or 'title', not a quote. Try: text "${tk[0].t}"`);
+  const n={cmd:tk[0].t=='-'?'item':tk[0].t,args:tk.slice(1),line:l,ind,kids:[]};
+  if(tk[0].t=='-'&&n.args.length&&!n.args[0].q)n.args=[{t:body.trim().slice(1).trim(),q:1}];
+  while(st[st.length-1].ind>=ind)st.pop();st[st.length-1].kids.push(n);st.push(n)});
+ return root.kids}
+function compile(src,preview){
+ const vars={},ov={},out=[];let title='My Wafl Page',desc='',theme='light',email='',mail=0;const tree=parse(src);
+ const interp=(s,l)=>s.replace(/\\\{|\{([\w-]+)\}/g,(m,n)=>{if(m=='\\{')return'{';if(!(n in vars))throw new WErr(l,`I don't know a variable called '${n}'.${sug(n,Object.keys(vars))} (Make one with: let ${n} = "value")`);return vars[n]});
+ const need=(n,k,m)=>{if(n.args.length<k)throw new WErr(n.line,m)};
+ function collect(ns,pass){for(const n of ns){const a=n.args;
+  if(pass==0&&n.cmd=='let'){if(!a.length||a[0].q)throw new WErr(n.line,"'let' needs a name. Example: let name = \"Sam\"");let v=1;if(a[v]&&!a[v].q&&a[v].t=='=')v++;if(!a[v])throw new WErr(n.line,`'let ${a[0].t}' needs a value. Example: let ${a[0].t} = "hello"`);vars[a[0].t]=interp(a[v].t,n.line)}
+  if(pass==1){
+   if(n.cmd=='page'){need(n,1,"'page' needs a title. Example: page \"My Site\"");title=interp(a[0].t,n.line)}
+   else if(n.cmd=='theme'){need(n,1,"'theme' needs a name. Try: theme dark");if(!TH[a[0].t])throw new WErr(n.line,`there's no theme called '${a[0].t}'.${sug(a[0].t,Object.keys(TH))} Themes: ${Object.keys(TH).join(', ')}`);theme=a[0].t}
+   else if(n.cmd=='description'){need(n,1,"'description' needs text. Example: description \"My cool site\"");desc=interp(a[0].t,n.line)}
+   else if(n.cmd=='email'){need(n,1,"'email' needs an address. Example: email \"you@example.com\"");email=interp(a[0].t,n.line);if(!/^[^\s@]+@[^\s@]+$/.test(email))throw new WErr(n.line,`'${email}' doesn't look like an email address.`)}
+   else if(n.cmd=='set'){need(n,2,"'set' needs a setting and a value. Example: set accent \"#ff6600\"");const k=a[0].t;let v=interp(a[1].t,n.line);if(!KEYS[k])throw new WErr(n.line,`I can't set '${k}'.${sug(k,Object.keys(KEYS))} You can set: ${Object.keys(KEYS).join(', ')}`);if(k=='width'&&/^\d+$/.test(v))v+='px';ov[KEYS[k]]=v}}
+  collect(n.kids,pass)}}
+ function attrs(n){const a={flags:[],has:0};for(let i=0;i<n.args.length;i++){const t=n.args[i];
+  if(t.q){if(a.has)throw new WErr(n.line,'only one piece of text per line. Put the extra text on its own line.');a.text=interp(t.t,n.line);a.has=1;continue}
+  const w=t.t;if(FLAGS.includes(w)){a.flags.push(w);continue}
+  if(VAL.includes(w)){if(i+1>=n.args.length)throw new WErr(n.line,`'${w}' needs a value after it. Example: ${w} "something"`);let v=interp(n.args[++i].t,n.line);if(w=='width'&&/^\d+$/.test(v))v+='px';a[w]=v;continue}
+  throw new WErr(n.line,`I don't understand '${w}' here.${sug(w,FLAGS.concat(VAL))} (Text must be in quotes, like "${w}")`)}
+  return a}
+ function formAttrs(a,n){if(a.to)return at('action',a.to)+at('method','post');if(!email)throw new WErr(n.line,'this form needs somewhere to go. Set your email with: email "you@example.com" or add: to "https://..."');mail=1;return at('data-mailto',email)+at('data-subject',a.subject||'Message from my website')}
+ function render(n,d,par){
+  if(n.cmd=='page'){n.kids.forEach(k=>render(k,d,par));return}
+  if(CFG.includes(n.cmd))return;
+  const e=E[n.cmd];if(!e)throw new WErr(n.line,`I don't know the word '${n.cmd}'.${sug(n.cmd,Object.keys(E).concat(CFG))}`);
+  const a=attrs(n),pad='  '.repeat(d),inList=par=='list'||par=='numbered',isLink=n.cmd=='link'||n.cmd=='button',k=e[2];
+  if(n.cmd=='item'&&!inList)throw new WErr(n.line,"'item' (or '-') only works inside a list. Put 'list' on the line above.");
+  if(inList&&n.cmd!='item')throw new WErr(n.line,"inside a list, every line should be an item. Start it with '-' or 'item'.");
+  if(a.to&&!(isLink||n.cmd=='form'))throw new WErr(n.line,"'to' only works on link, button and form.");
+  if(a.subject&&n.cmd!='form')throw new WErr(n.line,"'subject' only works on form.");
+  if(a.alt&&n.cmd!='image')throw new WErr(n.line,"'alt' only works on image.");
+  if((a.name||a.type)&&n.cmd!='input'&&n.cmd!='textarea')throw new WErr(n.line,"'name' and 'type' only work on input and textarea.");
+  const cls=[e[1],...a.flags,a.class].filter(Boolean).join(' '),sty=(a.color?`color:${a.color};`:'')+(a.bg?`background:${a.bg};`:'')+(a.width?`width:${a.width};`:'');
+  const oa=(a.id?at('id',a.id):'')+(cls?at('class',cls):'')+(sty?at('style',sty):''),t=e[0];
+  if(k=='T'){
+   if(!a.has)throw new WErr(n.line,`'${n.cmd}' needs some text. Example: ${n.cmd} "Hello"`);
+   if(n.kids.length&&n.cmd!='item')throw new WErr(n.kids[0].line,`'${n.cmd}' can't hold other things inside it. Try 'box' or 'card' instead.`);
+   let x=isLink?at('href',a.to||'#'):n.cmd=='submit'?at('type','submit'):'';const c=inl(esc(a.text));
+   if(!n.kids.length)out.push(`${pad}<${t}${oa}${x}>${c}</${t}>`);
+   else{out.push(`${pad}<li${oa}>${c}`);n.kids.forEach(q=>render(q,d+1,n.cmd));out.push(pad+'</li>')}
+  }else if(k=='B'){
+   if(a.has)throw new WErr(n.line,`'${n.cmd}' can't take text directly. Put a 'text' line inside it instead.`);
+   out.push(`${pad}<${t}${oa}${n.cmd=='form'?formAttrs(a,n):''}>`);n.kids.forEach(q=>render(q,d+1,n.cmd));out.push(`${pad}</${t}>`)
+  }else if(k=='V'){
+   if(n.kids.length)throw new WErr(n.kids[0].line,`'${n.cmd}' can't hold other things inside it.`);
+   const f=n.cmd=='input'||n.cmd=='textarea',ph=a.has&&f?at('placeholder',a.text):'',nm=a.name?at('name',a.name):'';
+   if(n.cmd=='image'){if(!a.has)throw new WErr(n.line,'\'image\' needs a file or address. Example: image "cat.png" alt "A cat"');out.push(`${pad}<img${oa}${at('src',a.text)}${at('alt',a.alt||'')}>`)}
+   else if(n.cmd=='input')out.push(`${pad}<input${oa}${at('type',a.type||'text')}${nm}${ph}>`);
+   else if(n.cmd=='textarea')out.push(`${pad}<textarea${oa}${nm}${ph}></textarea>`);
+   else{if(a.has)throw new WErr(n.line,`'${n.cmd}' doesn't take text.`);out.push(t=='div'?`${pad}<div${oa}></div>`:`${pad}<${t}${oa}>`)}
+  }else{
+   if(!a.has)throw new WErr(n.line,'\'code\' needs some text. Example: code "print(\'hi\')"');out.push(`${pad}<pre${oa}><code>${esc(a.text)}</code></pre>`)}}
+ collect(tree,0);collect(tree,1);tree.forEach(n=>render(n,1,''));
+ const T=TH[theme],css={'--bg':T[0],'--text':T[1],'--accent':T[2],'--muted':T[3],'--card':T[4],'--border':T[5],'--font':'system-ui,-apple-system,Segoe UI,Roboto,sans-serif','--width':'760px',...ov};
+ const guard=preview?'<script>document.addEventListener("click",function(e){var a=e.target.closest("a");if(a&&(a.getAttribute("href")||"#").charAt(0)!="#")e.preventDefault()});document.addEventListener("submit",function(e){e.preventDefault()})<\/script>':'';
+ return `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${esc(title)}</title>\n${desc?`<meta name="description" content="${esc(desc)}">\n`:''}<style>\n:root{${Object.entries(css).map(([k,v])=>k+':'+v+';').join('')}}\n${CSS}</style>\n</head>\n<body>\n${out.join('\n')}\n${guard}${mail&&!preview?MAILJS:''}</body>\n</html>\n`}
+
+/* ---------- Editor ---------- */
+const EXAMPLE=`// Welcome to Wafl! Lines starting with // are notes to yourself.
+page "My First Wafl Page"
+theme dark
+email "you@example.com"
+let name = "friend"
+
+nav
+  link "Home" to "#top"
+  link "About" to "#about"
+  link "Contact" to "#contact"
+
+title "Hello, {name}!" center
+text "This page was made with **Wafl**, the easy way to build web pages." center muted
+button "Get started" to "#about" center
+
+divider
+
+heading "About" id about
+text "Wafl turns plain words into clean HTML. No tags, no closing brackets."
+list
+  - Indent a line to put it *inside* the line above it
+  - Text can be **bold**, *italic*, \`code\`, or a [link](https://example.com)
+
+row
+  card
+    subheading "Easy"
+    text "If you can write a sentence, you can write Wafl."
+  card
+    subheading "Fast"
+    text "Type on the left and the page updates on the right."
+  card
+    subheading "Pretty"
+    text "Themes make it look good right away."
+
+heading "Contact" id contact
+form
+  input "Your name" name name
+  input "Your email" type email name email
+  textarea "Your message" name message
+  submit "Send"
+
+footer
+  text "Made with Wafl" center small
+`;
+const $=id=>document.getElementById(id),src=$('src'),pv=$('pv'),st=$('st'),KEY='wafl-source';
+let timer,errLine=0;
+const fix=s=>s.replace(/'/g,'\u2019');
+function run(){
+ try{pv.srcdoc=compile(src.value,true);errLine=0;st.className='';st.textContent='Looks good. The preview is up to date.';try{localStorage.setItem(KEY,src.value)}catch(e){}}
+ catch(e){if(!(e instanceof WErr))throw e;errLine=e.line;st.className='bad';st.textContent=`Line ${e.line}: ${fix(e.message)}`}}
+function goLine(n){const ls=src.value.split('\n');let o=0;for(let i=0;i<n-1;i++)o+=ls[i].length+1;src.focus();src.setSelectionRange(o,o+(ls[n-1]||'').length)}
+src.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(run,150)});
+src.addEventListener('keydown',e=>{if(e.key=='Tab'){e.preventDefault();src.setRangeText('  ',src.selectionStart,src.selectionEnd,'end');src.dispatchEvent(new Event('input'))}});
+st.addEventListener('click',()=>{if(errLine)goLine(errLine)});
+$('ex').addEventListener('click',()=>{src.value=EXAMPLE;run()});
+$('exp').addEventListener('click',async()=>{
+ let html;try{html=compile(src.value,false)}catch(e){if(e instanceof WErr){st.className='bad';st.textContent=`Fix line ${e.line} before exporting: ${fix(e.message)}`;errLine=e.line;return}throw e}
+ const m=html.match(/<title>(.*?)<\/title>/),name=((m&&m[1])||'page').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'page';
+ try{const d=window.claude&&await claude.use('downloads');
+  if(d){await d.save({filename:name+'.html',data:html});st.className='';st.textContent=`Exported ${name}.html`}
+  else{await navigator.clipboard.writeText(html);st.className='';st.textContent='Downloads aren’t available here, so the HTML was copied to your clipboard.'}}
+ catch(e){if(e&&e.code=='declined')return;st.className='bad';st.textContent='The export didn’t go through. Try again, or copy the page from the preview.'}});
+/* ---------- Docs ---------- */
+const DOCS=[
+['The big idea','Every line is one thing on your page: a word that says what it is, then its text in quotes. Indent a line to put it inside the line above. That’s the whole language. Press “Add to my page” under any example to try it.',
+`title "My little site"
+text "Welcome in."`],
+['Headings and text','Use title for the biggest heading, then heading and subheading. Use text for paragraphs, quote for a pull quote, and code to show code. Write \\n inside the quotes for a line break.',
+`title "Pancake club"
+heading "Our story"
+subheading "How it started"
+text "We met on a Sunday.\\nWe stayed for the syrup."
+quote "Breakfast is a promise."
+code "print('hello')"`],
+['Style inside text','Wrap words in stars or backticks, or write a link in square brackets followed by parentheses. This works in any text.',
+`text "Some **bold**, some *italic*, some \`code\`, and a [link](https://example.com)."`],
+['Links, buttons and images','Add to and an address to say where a link or button goes. Start an address with # to jump to a spot on your own page. Images take an address, plus alt text for people who can’t see them.',
+`link "Read more" to "https://example.com"
+button "Sign up" to "#signup"
+image "https://example.com/cat.jpg" alt "A sleepy cat"`],
+['Lists','Start a list, then add items with a dash. Use numbered for a numbered list. Indent a list under an item to nest it.',
+`list
+  - Flour
+  - Eggs
+  - Syrup
+
+numbered
+  - Mix
+  - Pour
+  - Flip`],
+['Grouping things','Groups hold other lines. Use card for a framed panel, row to put things side by side, column to stack them, and box, section, nav, header or footer for everything else. A group can’t take text itself, so put a text line inside it.',
+`row
+  card
+    subheading "Sweet"
+    text "Maple syrup."
+  card
+    subheading "Savory"
+    text "Fried chicken."`],
+['Make it yours','Add extras after the text. Alignment and size: center, left, right, big, small. Looks: bold, italic, muted. Values: color red, bg gold, width 300, id name, class name.',
+`title "Big news" center color tomato
+text "Small print" small muted
+button "Click me" to "#" bg tomato center`],
+['Forms','A form holds inputs. Set your email once with the email setting, and any form without a to will send its answers to you: when someone presses the button, their email app opens with the message filled in. Give each input a name and, if you like, a type such as email or password. Add subject "..." to choose the email subject. The preview doesn’t send anything, so try it from the exported page. To send the form to a web address instead, use to "https://...".',
+`email "you@example.com"
+
+form subject "Hello from my site"
+  input "Your name" name name
+  input "Your email" type email name email
+  textarea "Your message" name message
+  submit "Send"`],
+['Page settings','page sets the browser tab title. theme picks a look: light, dark, warm, ocean or forest. set changes one thing: background, text, accent, muted, card, border, font or width. description is for search engines. email is where contact forms send their messages.',
+`page "Pancake Club"
+theme warm
+set accent "#c2410c"
+set font "Georgia, serif"
+set width 640
+description "A club for pancake people."`],
+['Variables','Save something once with let, then use it anywhere inside curly braces. To show a real curly brace, put a backslash before it.',
+`let name = "Sam"
+let city = "Springfield"
+title "Hi, {name} here"
+text "I live in {city}."`],
+['Notes and mistakes','Lines that start with // are notes to yourself and are ignored. If something is wrong, the message under the editor names the line and suggests a fix; click it to jump there. The most common slip is forgetting the quotes around text.',
+`// this line is ignored
+text "Text always goes in quotes"`]
+];
+const dv=$('docs'),dbx=$('db');
+function closeDocs(){dv.hidden=true;$('dk').focus()}
+DOCS.forEach(([h,p,c])=>{const s=document.createElement('section'),H=document.createElement('h3'),P=document.createElement('p');H.textContent=h;P.textContent=p;s.append(H,P);
+ if(c){const pre=document.createElement('pre'),b=document.createElement('button');pre.textContent=c;b.className='add';b.textContent='Add to my page';
+  b.onclick=()=>{src.value=src.value.replace(/\s*$/,'')+'\n\n'+c+'\n';closeDocs();run();src.scrollTop=src.scrollHeight};s.append(pre,b)}
+ dbx.append(s)});
+$('dk').addEventListener('click',()=>{dv.hidden=false;dbx.scrollTop=0;$('dc').focus()});
+$('dc').addEventListener('click',closeDocs);
+dv.addEventListener('click',e=>{if(e.target===dv)closeDocs()});
+document.addEventListener('keydown',e=>{if(e.key=='Escape'&&!dv.hidden)closeDocs()});
+let saved=null;try{saved=localStorage.getItem(KEY)}catch(e){}
+src.value=saved!=null?saved:EXAMPLE;run();
+</script>
+</body>
+</html>
